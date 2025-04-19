@@ -15,7 +15,9 @@ import org.springframework.stereotype.Service;
 
 import java.time.LocalDate;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 @Service
 public class OrderService {
@@ -39,52 +41,56 @@ public class OrderService {
             throw new IllegalArgumentException("Order details are incomplete.");
         }
         order.setStatus(Status.PENDING);
+        double totalAmount = 0.0;
+        for(Map.Entry<String,Integer> productOder:order.getProductList().entrySet()){
+            Product product = productService.getProduct(productOder.getKey());
+            if(product != null){
+                totalAmount += product.getPrice()*productOder.getValue();
+            }
+        }
+        order.setTotalAmount(totalAmount);
+        order.setOrderDate(LocalDate.now());
         orderRepo.save(order);
-        System.out.println("Phase 6");
     }
 
 
     public void addProductToNewOrder(String productId, int quantity, String userId) {
-        System.out.println("Phase 2");
-        System.out.println(productId);
-        System.out.println(userId);
-
         Product product = productService.getProduct(productId);
         if(userService.getUser(userId).isPresent() && product != null){
-            System.out.println("Phase 3");
             Order order = new Order();
-
-            order.setProductList(new ArrayList<>());
+            order.setProductList(new HashMap<String, Integer>());
             order.setUserId(userId);
             order.setStatus(Status.PENDING);
             order.setOrderDate(LocalDate.now());
             order.setId(DataLoader.generateValidId());
 
-            List<Product> productList = order.getProductList();
+            Map<String,Integer> productList = order.getProductList();
             addProductToOrderHelper(quantity, order, productList, product);
         }else{
-            System.out.println("Phase 3 fails");
             throw new NotFoundException("User or Product not found");
         }
     }
 
 
-    private void addProductToOrderHelper(int quantity, Order order, List<Product> productList, Product product) {
+    private void addProductToOrderHelper(int quantity, Order order, Map<String,Integer> productList, Product product) {
         if (product != null && product.getStockQuantity() - quantity > -1) {
-
             // add product to order product list
-            product.setQuantity(quantity);
-            productList.add(product);
+            productList.put(product.getId(),quantity);
             order.setProductList(productList);
-
+            double totalAmount = 0.0;
+            for(Map.Entry<String,Integer> productOder:order.getProductList().entrySet()){
+                Product product1 = productService.getProduct(productOder.getKey());
+                if(product1 != null){
+                    totalAmount += product.getPrice()*productOder.getValue();
+                }
+            }
+            order.setTotalAmount(totalAmount);
 
             if(getOrder(order.getId()) != null){
                 updateOrder(order);
             }else{
                 addOrder(order);
             }
-
-
         } else {
             throw new InsufficientProductException("no product or stock sufficient available ");
         }
@@ -95,7 +101,7 @@ public class OrderService {
         Order order = getOrder(orderId);
         Product product = productService.getProduct(productId);
         if (order != null && product != null) {
-            List<Product> productList = order.getProductList();
+            Map<String,Integer> productList = order.getProductList();
             addProductToOrderHelper(quantity, order, productList, product);
         } else {
             throw new NotFoundException("order not found");
@@ -115,7 +121,7 @@ public class OrderService {
         return orderRepo.findById(id).orElse(null);
     }
 
-    public List<Product> getProductsOrder(String orderId) throws Exception {
+    public Map<String,Integer> getProductsOrder(String orderId) {
         Order order = getOrder(orderId);
         if (order != null) {
             return order.getProductList();
@@ -162,11 +168,12 @@ public class OrderService {
     public void deleteProductFromOrder(String productId, String orderId) {
         Order order = getOrder(orderId);
         if (order != null) {
-            List<Product> productList = order.getProductList();
+            Map<String,Integer> productList = order.getProductList();
             Product product = productService.getProduct(productId);
-            if (product != null) {
 
-                productList.remove(product);
+            if (product != null && productList.containsKey(productId)) {
+                productList.remove(productId);
+                updateOrder(order);
             }
         }
     }

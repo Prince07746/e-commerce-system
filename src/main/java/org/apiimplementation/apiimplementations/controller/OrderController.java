@@ -18,6 +18,8 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.List;
+
 
 @CrossOrigin(origins = "*") // Allow all origins
 @RestController
@@ -77,7 +79,8 @@ public class OrderController{
     })
     @GetMapping
     public ResponseEntity<?> getOrderList(){
-        return ResponseEntity.ok(orderService.getOrderList());
+        List<Order> orderList = orderService.getOrderList();
+        return ResponseEntity.ok(orderList);
     }
 
 
@@ -174,9 +177,6 @@ public class OrderController{
 
     )  {
 
-        System.out.println("Phase 1");
-        System.out.println(productId.getValue());
-        System.out.println(userId.getValue());
         orderService.addProductToNewOrder(productId.getValue(),quantity,userId.getValue());
 
         return ResponseEntity.status(HttpStatus.CREATED).body(new Message("Product created"));

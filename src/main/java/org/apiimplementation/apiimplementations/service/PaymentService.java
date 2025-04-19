@@ -14,6 +14,7 @@ import org.springframework.data.mongodb.core.query.Update;
 import javax.naming.InsufficientResourcesException;
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Map;
 
 public class PaymentService {
 
@@ -43,11 +44,10 @@ public class PaymentService {
         Order order = orderService.getOrder(orderId);
         if (order != null) {
 
-
-            for (Product product : order.getProductList()) {
-                Product stockProduct = productService.getProduct(product.getId());
-                if (!(stockProduct.getStockQuantity() - product.getQuantity() > -1)) {
-                    throw new InsufficientResourcesException("Insufficient product ID: "+product.getId());
+            for (Map.Entry<String ,Integer> product : order.getProductList().entrySet()) {
+                Product stockProduct = productService.getProduct(product.getKey());
+                if ( !(stockProduct.getStockQuantity() - product.getValue() > -1) ) {
+                    throw new InsufficientResourcesException("Insufficient product ID: "+product.getKey());
                 }
             }
             // perform payment
@@ -73,12 +73,12 @@ public class PaymentService {
         });
 
         // update stock quantity
-        for (Product product : order.getProductList()) {
-            Product stockProduct = productService.getProduct(product.getId());
-            stockProduct.setStockQuantity(stockProduct.getStockQuantity() - product.getQuantity());
+        for (Map.Entry<String,Integer> product : order.getProductList().entrySet()) {
+            Product stockProduct = productService.getProduct(product.getKey());
+            stockProduct.setStockQuantity(stockProduct.getStockQuantity() - product.getValue());
             productService.updateProduct(stockProduct);
         }
-        paymentRepository.save(new Payment(order.getId(), order.getUserId(), order.totalAmount(),
+        paymentRepository.save(new Payment(order.getId(), order.getUserId(), order.getTotalAmount(),
                 PaymentStatus.COMPLETED,
                 LocalDateTime.now()));
     }
@@ -91,9 +91,9 @@ public class PaymentService {
         updatePayment(payment);
 
         // If an order is cancelled, the products must be re-stocked.
-        for (Product product : orderService.getOrder(payment.getOrderId()).getProductList() ) {
-            Product stockProduct = productService.getProduct(product.getId());
-            stockProduct.setStockQuantity(stockProduct.getStockQuantity() + product.getQuantity());
+        for (Map.Entry<String,Integer>product : orderService.getOrder(payment.getOrderId()).getProductList().entrySet()) {
+            Product stockProduct = productService.getProduct(product.getKey());
+            stockProduct.setStockQuantity(stockProduct.getStockQuantity() + product.getValue());
             productService.updateProduct(stockProduct);
         }
 

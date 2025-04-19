@@ -7,6 +7,7 @@ import org.springframework.data.mongodb.core.mapping.Document;
 
 import java.time.LocalDate;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 
 
@@ -18,7 +19,7 @@ public class Order {
     private String userId;
     @Min(0)
     private Double totalAmount;
-    private List<Product> productList;
+    private Map<String, Integer> productList;
     private Status status;
     private LocalDate orderDate;
 
@@ -26,26 +27,24 @@ public class Order {
     public Order() {
     }
 
-
-    public Order(String userId, List<Product> productList) {
+    public Order(String id, String userId, Double totalAmount, Map<String, Integer> productList, Status status, LocalDate orderDate) {
+        this.id = id;
         this.userId = userId;
-        this.totalAmount = totalAmount();
+        this.totalAmount = totalAmount;
+        this.productList = productList;
+        this.status = status;
+        this.orderDate = orderDate;
+    }
+
+    public Order(String userId, Map<String,Integer> productList) {
+        this.userId = userId;
+        this.totalAmount = 0.0;
         this.productList = productList;
         this.status = Status.PENDING;
         this.orderDate = LocalDate.now();
     }
 
 
-
-
-    public Double totalAmount(){
-      List<Double> prices = getProductList().stream().map(Product::getPrice).toList();
-      double total = 0.0;
-      for(double price:prices){
-          total += price;
-      }
-      return  total;
-    }
 
     public String getId() {
         return id;
@@ -71,11 +70,11 @@ public class Order {
         this.totalAmount = totalAmount;
     }
 
-    public List<Product> getProductList() {
+    public Map<String,Integer> getProductList() {
         return productList;
     }
 
-    public void setProductList(List<Product> productList) {
+    public void setProductList(Map<String,Integer> productList) {
         this.productList = productList;
     }
 

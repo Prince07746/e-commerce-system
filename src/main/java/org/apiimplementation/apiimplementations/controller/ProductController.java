@@ -8,6 +8,7 @@ import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import org.apiimplementation.apiimplementations.config.Message;
+import org.apiimplementation.apiimplementations.error.customError.InvalidFormatException;
 import org.apiimplementation.apiimplementations.error.customError.NotFoundException;
 import org.apiimplementation.apiimplementations.service.ProductService;
 import org.apiimplementation.apiimplementations.model.Product;
@@ -37,15 +38,15 @@ public class ProductController {
     @Operation(method = "GET", summary = "get a specific product using id", responses = {
             @ApiResponse(
                     responseCode = "200", description = "product retrieved successfully", content =
-                    @Content(schema = @Schema(implementation = Product.class))
+            @Content(schema = @Schema(implementation = Product.class))
             ),
             @ApiResponse(
                     responseCode = "407", description = "bad request", content = @Content(schema =
-                    @Schema(implementation = Message.class))
+            @Schema(implementation = Message.class))
             ),
             @ApiResponse(
                     responseCode = "404", description = "product not found", content = @Content(schema =
-                    @Schema(implementation = Message.class)
+            @Schema(implementation = Message.class)
             ))
     })
     @GetMapping("/{id}")
@@ -57,21 +58,14 @@ public class ProductController {
             @PathVariable(name = "id") IdPattern productId
     ) {
         Product product = productService.getProduct(productId.getValue());
-        if(product == null){
-           throw new NotFoundException("Product with ID: " + productId + "  not found");
+        if (product == null) {
+            throw new NotFoundException("Product with ID: " + productId + "  not found");
         }
         return ResponseEntity.ok(product);
     }
 
 
-
-
-
-
-
-
-
-    @Operation(method = "POST", summary ="Create a new product",responses = {
+    @Operation(method = "POST", summary = "Create a new product", responses = {
             @ApiResponse(
                     responseCode = "201", description = "Product created successfully",
                     content = @Content(schema = @Schema(implementation = Message.class))
@@ -84,27 +78,24 @@ public class ProductController {
     @PostMapping()
     public ResponseEntity<?> createNewProduct(
             @Parameter(
-                    description = "Product",name="product",content = @Content(mediaType = "application/json",
-                    schema = @Schema(implementation = Product.class)),required = true
+                    description = "Product", name = "product", content = @Content(mediaType = "application/json",
+                    schema = @Schema(implementation = Product.class)), required = true
             )
             @RequestBody Product product
     ) {
 
-        if(product == null){
-            throw new IllegalArgumentException("Request body is required and cannot be empty");
+        if (product == null || product.getId() == null || product.getName() == null || product.getPrice() <= 0) {
+            return ResponseEntity.badRequest().body(new Message("Invalid product data"));
         }
+
+        String idCheck = new IdPattern(product.getId()).getValue();
         productService.addProduct(product);
         return ResponseEntity.status(HttpStatus.CREATED).body(new Message("Product created"));
+
     }
 
 
-
-
-
-
-
-
-    @Operation(method = "PUT", summary ="Update an existing product",responses = {
+    @Operation(method = "PUT", summary = "Update an existing product", responses = {
             @ApiResponse(
                     responseCode = "200", description = "Product update successfully",
                     content = @Content(schema = @Schema(implementation = Message.class))
@@ -126,7 +117,7 @@ public class ProductController {
             )
             @PathVariable(name = "id") IdPattern productId,
             @RequestBody Product product
-    )  {
+    ) {
 
         if (productService.getProduct(productId.getValue()) != null) {
 
@@ -140,12 +131,8 @@ public class ProductController {
     }
 
 
-
-
-
-
-// DELETE A PRODUCT BY ID
-    @Operation(method = "DELETE", summary ="delete an existing product",responses = {
+    // DELETE A PRODUCT BY ID
+    @Operation(method = "DELETE", summary = "delete an existing product", responses = {
             @ApiResponse(
                     responseCode = "204", description = "Product deleted successfully",
                     content = @Content(schema = @Schema(implementation = Message.class))
@@ -176,11 +163,7 @@ public class ProductController {
     }
 
 
-
-
-
-
-    @Operation(method = "GET", summary ="get product list",responses = {
+    @Operation(method = "GET", summary = "get product list", responses = {
             @ApiResponse(
                     responseCode = "204", description = "Product empty list",
                     content = @Content(schema = @Schema(implementation = Message.class))
@@ -201,7 +184,7 @@ public class ProductController {
         if (products.isEmpty()) {
             return ResponseEntity.ok(new Message("Product list empty"));
         }
-        return  ResponseEntity.ok(products);
+        return ResponseEntity.ok(products);
     }
 
 

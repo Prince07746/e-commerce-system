@@ -11,7 +11,7 @@ public class SanitizeString {
     private final String value;
     
     public SanitizeString(String value,String pattern){
-        if(!(isValid(value,pattern)) || value == null){
+        if(!(isValid(value,pattern)) || value == null || value.isBlank()){
             throw new InvalidFormatException("Invalid format: "+value);
         }
         this.value = value;
